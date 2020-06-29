@@ -1,5 +1,10 @@
 package dev.hammarlund.flutter_athlete_app_support;
 
+import android.content.Context;
+import android.os.Build;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
+
 import androidx.annotation.NonNull;
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
@@ -11,27 +16,18 @@ import io.flutter.plugin.common.PluginRegistry.Registrar;
 
 /** FlutterAthleteAppSupportPlugin */
 public class FlutterAthleteAppSupportPlugin implements FlutterPlugin, MethodCallHandler {
-  /// The MethodChannel that will the communication between Flutter and native Android
-  ///
-  /// This local reference serves to register the plugin with the Flutter Engine and unregister it
-  /// when the Flutter Engine is detached from the Activity
   private MethodChannel channel;
+
+  private Vibrator vibrator;
 
   @Override
   public void onAttachedToEngine(@NonNull FlutterPluginBinding flutterPluginBinding) {
     channel = new MethodChannel(flutterPluginBinding.getFlutterEngine().getDartExecutor(), "flutter_athlete_app_support");
     channel.setMethodCallHandler(this);
+
+    this.vibrator = (Vibrator) flutterPluginBinding.getApplicationContext().getSystemService(Context.VIBRATOR_SERVICE);
   }
 
-  // This static function is optional and equivalent to onAttachedToEngine. It supports the old
-  // pre-Flutter-1.12 Android projects. You are encouraged to continue supporting
-  // plugin registration via this function while apps migrate to use the new Android APIs
-  // post-flutter-1.12 via https://flutter.dev/go/android-project-migration.
-  //
-  // It is encouraged to share logic between onAttachedToEngine and registerWith to keep
-  // them functionally equivalent. Only one of onAttachedToEngine or registerWith will be called
-  // depending on the user's project. onAttachedToEngine or registerWith must both be defined
-  // in the same class.
   public static void registerWith(Registrar registrar) {
     final MethodChannel channel = new MethodChannel(registrar.messenger(), "flutter_athlete_app_support");
     channel.setMethodCallHandler(new FlutterAthleteAppSupportPlugin());
@@ -39,10 +35,24 @@ public class FlutterAthleteAppSupportPlugin implements FlutterPlugin, MethodCall
 
   @Override
   public void onMethodCall(@NonNull MethodCall call, @NonNull Result result) {
-    if (call.method.equals("getPlatformVersion")) {
-      result.success("Android " + android.os.Build.VERSION.RELEASE);
+    if (call.method.equals("hasVibrator")) {
+      result.success(vibrator.hasVibrator());
+    } else if (call.method.equals("vibrate")) {
+      vibrate(500);
+      result.success(null);
     } else {
       result.notImplemented();
+    }
+  }
+
+  @SuppressWarnings("deprecation")
+  private void vibrate(long duration) {
+    if (vibrator.hasVibrator()) {
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        vibrator.vibrate(VibrationEffect.createOneShot(duration, VibrationEffect.DEFAULT_AMPLITUDE));
+      } else {
+        vibrator.vibrate(duration);
+      }
     }
   }
 

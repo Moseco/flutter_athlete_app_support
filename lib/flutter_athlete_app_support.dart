@@ -6,8 +6,11 @@ class FlutterAthleteAppSupport {
   static const MethodChannel _channel =
       const MethodChannel('flutter_athlete_app_support');
 
-  static Future<String> get platformVersion async {
-    final String version = await _channel.invokeMethod('getPlatformVersion');
-    return version;
+  static openSettings() async {
+    await _channel.invokeMethod("openSettings");
   }
+
+  static Future<bool> hasVibrator() => _channel.invokeMethod("hasVibrator");
+
+  static Future<void> vibrate() => _channel.invokeMethod("vibrate");
 }
